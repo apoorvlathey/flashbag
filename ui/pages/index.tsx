@@ -1,18 +1,41 @@
 import type { NextPage } from "next";
 import Head from "next/head";
 import React, { useEffect, useState } from "react";
-import { Center, Box, VStack, Heading } from "@chakra-ui/react";
+import { Center, Box, VStack, Heading, Button } from "@chakra-ui/react";
+import Layout from "@/components/Layout";
 import axios from "axios";
-import Layout from "../components/Layout";
-import { useAccount, useNetwork } from "wagmi";
-import { utils } from "ethers";
-import { aTEST_Goerli } from "@/config";
+import {
+  useAccount,
+  useNetwork,
+  useContractWrite,
+  usePrepareContractWrite,
+  useWaitForTransaction,
+} from "wagmi";
+import { utils, constants } from "ethers";
+import { aTEST_Goerli, FlashBagGoerli } from "@/config";
+import FlashBagABI from "@/abis/FlashBag.json";
 
 const Home: NextPage = () => {
   const { address } = useAccount();
   const { chain } = useNetwork();
 
-  const [balances, setBalances] = useState<any[]>();
+  const [balance, setBalance] = useState<string>();
+
+  const { config: bridgeAaveConfig } = usePrepareContractWrite({
+    addressOrName: FlashBagGoerli ?? constants.AddressZero,
+    contractInterface: FlashBagABI,
+    functionName: "bridgeAave",
+    args: [balance, 9991],
+    enabled: !!balance,
+  });
+  const {
+    data: bridgeAaveData,
+    write: bridgeAaveWrite,
+    isLoading: isBridgeAaveLoading,
+  } = useContractWrite(bridgeAaveConfig);
+  const { isLoading: isTransactionPending } = useWaitForTransaction({
+    hash: bridgeAaveData?.hash,
+  });
 
   useEffect(() => {
     const fetchTokenBalances = async () => {
@@ -30,10 +53,10 @@ const Home: NextPage = () => {
       }>(
         `https://api.covalenthq.com/v1/${chain?.id}/address/${address}/balances_v2/?key=${process.env.NEXT_PUBLIC_COVALENT_API_KEY}`
       );
-      setBalances(
+      setBalance(
         res.data.data.items.filter(
           (e) => e.contract_address.toLowerCase() == aTEST_Goerli.toLowerCase()
-        )
+        )[0].balance
       );
     };
 
@@ -53,13 +76,21 @@ const Home: NextPage = () => {
             <Heading fontSize="2xl">Your Balances</Heading>
           </VStack>
         </Box>
-        {balances &&
-          balances.map((b) => (
+        {balance && (
+          <Box>
             <Box>
-              {b.contract_ticker_symbol}{" "}
-              {utils.formatUnits(b.balance, b.contract_decimals)}
+              aTEST:
+              {utils.formatUnits(balance, 18)}
             </Box>
-          ))}
+            <Button
+              onClick={() => bridgeAaveWrite?.()}
+              isDisabled={parseFloat(balance) == 0}
+              isLoading={isBridgeAaveLoading || isTransactionPending}
+            >
+              Move position to Aave Polygon
+            </Button>
+          </Box>
+        )}
       </Center>
     </Layout>
   );
