@@ -1,5 +1,7 @@
 import { chain } from "wagmi";
 
+export const aTEST_Goerli = "0xB666B865EEBF83C6658E3f73EACFe3eC17e67275";
+
 export const supportedChains = [chain.goerli, chain.polygonMumbai];
 
 export const chainIdToRPC = {
