@@ -1,0 +1,35 @@
+{
+  "transactions": [
+    {
+      "hash": "0x6d1de0e596d871ab43f71006407e32aa29d644cf071254299d66d24638b6c24d",
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0x018B36F90BaA4A8733FE6222DE1A37604DE92eFd",
+      "function": null,
+      "arguments": null,
+      "rpc": "https://rpc.ankr.com/eth_goerli",
+      "transaction": {
+        "type": "0x02",
+        "from": "0xd478fbe69553e7cec80eef4c355089e0f256eef3",
+        "to": "0x018b36f90baa4a8733fe6222de1a37604de92efd",
+        "gas": "0xf8c0",
+        "value": "0x0",
+        "data": "0x9ba31c2500000000000000000000000085e7a5d08ea04852f545894dd3f1e915980da1e8",
+        "nonce": "0xc",
+        "accessList": []
+      },
+      "additionalContracts": []
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [
+    "0x6d1de0e596d871ab43f71006407e32aa29d644cf071254299d66d24638b6c24d"
+  ],
+  "path": "/home/apoorvlathey/blockchain/ethindia-2022/contracts/broadcast/deploy.s.sol/5/run-latest.json",
+  "returns": {},
+  "timestamp": 1670018015,
+  "chain": 5,
+  "multi": false,
+  "commit": "9338d63"
+}

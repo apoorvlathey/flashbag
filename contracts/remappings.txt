@@ -1,1 +1,4 @@
 forge-std=lib/forge-std/src/
+@connext=node_modules/@connext/nxtp-contracts/contracts
+@oz=lib/openzeppelin-contracts/contracts/
+@src=./src/
