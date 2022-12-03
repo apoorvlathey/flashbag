@@ -17,8 +17,8 @@ contract Deploy is Script {
     address goerli_adai = 0x31f30d9A5627eAfeC4433Ae2886Cf6cc3D25E772;
     address goerli_test = 0x7ea6eA49B0b0Ae9c5db7907d139D9Cd3439862a1;
 
-    address goerli_atest = 0xB666B865EEBF83C6658E3f73EACFe3eC17e67275;
-    address goerli_fb = 0xa9B274d28a02385230a65b41e1E58f86e6c62030;
+    address goerli_atest = 0x7f62Ac86A528685C5e8BF6019E7DFe6E1587E03d;
+    address goerli_fb = 0x854Da00d8F699Ead0FB1dbb3a12fA76504Ebb2EB;
 
     // =========== MUMBAI ===============
     address mumbai_connext = 0xa2F2ed226d4569C8eC09c175DDEeF4d41Bab4627;
@@ -26,8 +26,8 @@ contract Deploy is Script {
     address mumbai_adai = 0x639cB7b21ee2161DF9c882483C9D55c90c20Ca3e;
     address mumbai_test = 0xeDb95D8037f769B72AAab41deeC92903A98C9E16;
 
-    address mumbai_atest = 0x117E3343d9F77dd27C55fC0932121d0387527F5D;
-    address mumbai_fb = 0x018B36F90BaA4A8733FE6222DE1A37604DE92eFd;
+    address mumbai_atest = 0x2D8EE3829d10d30247beDF9A2a41219Aa4b664a6;
+    address mumbai_fb = 0x5C77BAD097eF39E4107Aa5a5b09EF13612e61bFf;
 
     function run() external {
         vm.startBroadcast();
@@ -74,7 +74,7 @@ contract Deploy is Script {
     }
 
     function _mintApproveAndBridgeFromGoerliToMumbai() internal {
-        uint256 toBridge = 100 ether;
+        uint256 toBridge = 5 ether;
 
         ITest(goerli_test).mint(msg.sender, toBridge);
         uint256 testBalance = IERC20(goerli_test).balanceOf(msg.sender);
