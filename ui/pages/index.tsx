@@ -73,24 +73,26 @@ const Home: NextPage = () => {
       <Center flexDir="column">
         <Box mt="2rem" py="2rem" px="10rem" boxShadow="2xl" rounded="lg">
           <VStack spacing="2rem">
-            <Heading fontSize="2xl">Your Balances</Heading>
+            <Heading fontSize="2xl">Your Positions</Heading>
           </VStack>
-        </Box>
-        {balance && (
-          <Box>
+
+          {balance && (
             <Box>
-              aTEST:
-              {utils.formatUnits(balance, 18)}
+              <Box>
+                aTEST:
+                {utils.formatUnits(balance, 18)}
+              </Box>
+              {/* TODO: add approval button */}
+              <Button
+                onClick={() => bridgeAaveWrite?.()}
+                isDisabled={parseFloat(balance) == 0}
+                isLoading={isBridgeAaveLoading || isTransactionPending}
+              >
+                Move position to Aave Polygon
+              </Button>
             </Box>
-            <Button
-              onClick={() => bridgeAaveWrite?.()}
-              isDisabled={parseFloat(balance) == 0}
-              isLoading={isBridgeAaveLoading || isTransactionPending}
-            >
-              Move position to Aave Polygon
-            </Button>
-          </Box>
-        )}
+          )}
+        </Box>
       </Center>
     </Layout>
   );

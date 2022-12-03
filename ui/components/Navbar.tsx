@@ -17,7 +17,7 @@ function Navbar() {
           cursor: "pointer",
         }}
       >
-        FlashBag
+        ⚡ FlashBag
       </Heading>
       <Spacer />
       <SwitchChains />
