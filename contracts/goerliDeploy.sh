@@ -1,0 +1,1 @@
+source .env && forge script ./script/deploy.s.sol --broadcast --rpc-url $GOERLI_RPC_URL --sender $SENDER --private-key $PRIVATE_KEY
