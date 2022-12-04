@@ -12,6 +12,8 @@ import {
   Image,
   Divider,
   Skeleton,
+  Progress,
+  Link,
 } from "@chakra-ui/react";
 import Layout from "@/components/Layout";
 import axios from "axios";
@@ -23,8 +25,14 @@ import {
   useWaitForTransaction,
 } from "wagmi";
 import { utils, constants } from "ethers";
+import { poll } from "poll";
 import { aTEST_Goerli, aTEST_Mumbai, FlashBagGoerli } from "@/config";
 import FlashBagABI from "@/abis/FlashBag.json";
+
+const goerliGraphUrl =
+  "https://api.thegraph.com/subgraphs/name/connext/nxtp-amarok-runtime-v0-goerli";
+const mumbaiGraphUrl =
+  "https://api.thegraph.com/subgraphs/name/connext/nxtp-amarok-runtime-v0-mumbai";
 
 const Home: NextPage = () => {
   const { address } = useAccount();
@@ -32,71 +40,229 @@ const Home: NextPage = () => {
 
   const [goerliBalance, setGoerliBalance] = useState<string>();
   const [mumbaiBalance, setMumbaiBalance] = useState<string>();
+  const [transferId, setTransferId] = useState<string>();
+  const [pendingTargetTx, setPendingTargetTx] = useState(false);
+  const [targetTxHash, setTargetTxHash] = useState<string>();
+
+  const fetchTokenBalances = async () => {
+    const res = await axios.get<{
+      data: {
+        items: {
+          contract_decimals: number;
+          contract_name: string;
+          contract_ticker_symbol: string;
+          contract_address: string;
+          logo_url: string;
+          balance: string;
+        }[];
+      };
+    }>(
+      `https://api.covalenthq.com/v1/${chain?.id}/address/${address}/balances_v2/?key=${process.env.NEXT_PUBLIC_COVALENT_API_KEY}`
+    );
+    setGoerliBalance(
+      res.data.data.items.filter(
+        (e) => e.contract_address.toLowerCase() == aTEST_Goerli.toLowerCase()
+      )[0].balance
+    );
+    const resMumbai = await axios.get<{
+      data: {
+        items: {
+          contract_decimals: number;
+          contract_name: string;
+          contract_ticker_symbol: string;
+          contract_address: string;
+          logo_url: string;
+          balance: string;
+        }[];
+      };
+    }>(
+      `https://api.covalenthq.com/v1/${80001}/address/${address}/balances_v2/?key=${
+        process.env.NEXT_PUBLIC_COVALENT_API_KEY
+      }`
+    );
+    setMumbaiBalance(
+      resMumbai.data.data.items.filter(
+        (e) => e.contract_address.toLowerCase() == aTEST_Mumbai.toLowerCase()
+      )[0].balance
+    );
+  };
 
   const { config: bridgeAaveConfig } = usePrepareContractWrite({
     addressOrName: FlashBagGoerli ?? constants.AddressZero,
     contractInterface: FlashBagABI,
     functionName: "bridgeAave",
-    args: [goerliBalance, 9991],
+    args: [utils.parseEther("1"), 9991], // TODO: use goerliBalance
     enabled: !!goerliBalance,
   });
   const {
     data: bridgeAaveData,
     write: bridgeAaveWrite,
     isLoading: isBridgeAaveLoading,
-  } = useContractWrite(bridgeAaveConfig);
+  } = useContractWrite({
+    ...bridgeAaveConfig,
+    async onSuccess(data) {
+      await data.wait();
+      setPendingTargetTx(true);
+      storeTransferId(data.hash);
+    },
+  });
   const { isLoading: isTransactionPending } = useWaitForTransaction({
     hash: bridgeAaveData?.hash,
   });
 
-  useEffect(() => {
-    const fetchTokenBalances = async () => {
-      const res = await axios.get<{
-        data: {
-          items: {
-            contract_decimals: number;
-            contract_name: string;
-            contract_ticker_symbol: string;
-            contract_address: string;
-            logo_url: string;
-            balance: string;
-          }[];
-        };
-      }>(
-        `https://api.covalenthq.com/v1/${chain?.id}/address/${address}/balances_v2/?key=${process.env.NEXT_PUBLIC_COVALENT_API_KEY}`
-      );
-      setGoerliBalance(
-        res.data.data.items.filter(
-          (e) => e.contract_address.toLowerCase() == aTEST_Goerli.toLowerCase()
-        )[0].balance
-      );
-      const resMumbai = await axios.get<{
-        data: {
-          items: {
-            contract_decimals: number;
-            contract_name: string;
-            contract_ticker_symbol: string;
-            contract_address: string;
-            logo_url: string;
-            balance: string;
-          }[];
-        };
-      }>(
-        `https://api.covalenthq.com/v1/${80001}/address/${address}/balances_v2/?key=${
-          process.env.NEXT_PUBLIC_COVALENT_API_KEY
-        }`
-      );
-      setMumbaiBalance(
-        resMumbai.data.data.items.filter(
-          (e) => e.contract_address.toLowerCase() == aTEST_Mumbai.toLowerCase()
-        )[0].balance
-      );
-    };
+  const storeTransferId = async (txHash: string) => {
+    poll(
+      async () => {
+        let tid: string | undefined;
 
+        try {
+          tid = await getTransferId(txHash);
+          setTransferId(tid);
+        } catch (e: any) {}
+      },
+      5000,
+      () => {
+        console.log(!!transferId);
+        return !!transferId; // FIXME: stop polling
+      }
+    );
+  };
+
+  const getTransferId = async (txHash: string): Promise<string> => {
+    const res = await axios({
+      method: "post",
+      url: goerliGraphUrl,
+      data: {
+        operationName: "originTransfers",
+        query: `{
+            originTransfers(
+              where: {
+                transactionHash: "${txHash}"
+              }
+            ) {
+              # Meta Data
+              chainId
+              transferId
+              nonce
+              to
+              delegate
+              receiveLocal
+              callData
+              slippage
+              originSender
+              originDomain
+              destinationDomain
+              # Asset Data
+              asset {
+                id
+                adoptedAsset
+                canonicalId
+                canonicalDomain
+              }
+              bridgedAmt
+              normalizedIn
+              status
+              transactionHash
+              timestamp
+            }
+          }`,
+        variables: {},
+      },
+    });
+
+    return res.data.data.originTransfers[0].transferId as string;
+  };
+
+  const getTargetTxHash = async (transferId: string): Promise<string> => {
+    const res = await axios({
+      method: "post",
+      url: mumbaiGraphUrl,
+      data: {
+        operationName: "destinationTransfers",
+        query: `{
+          destinationTransfers(
+            where: {
+              transferId: "${transferId}"
+            }
+          ) {
+            # Meta Data
+            chainId
+            transferId
+            nonce
+            to
+            delegate
+            receiveLocal
+            callData
+            slippage
+            originSender
+            originDomain
+            destinationDomain
+            # Asset Data
+            asset {
+              id
+            }
+            bridgedAmt
+            # Executed event Data
+            status
+            routers {
+              id
+            }
+            # Executed Transaction
+            executedCaller
+            executedTransactionHash
+            executedTimestamp
+            executedGasPrice
+            executedGasLimit
+            executedBlockNumber
+            # Reconciled Transaction
+            reconciledCaller
+            reconciledTransactionHash
+            reconciledTimestamp
+            reconciledGasPrice
+            reconciledGasLimit
+            reconciledBlockNumber
+          }
+        }`,
+        variables: {},
+      },
+    });
+
+    return res.data.data.destinationTransfers[0]
+      .executedTransactionHash as string;
+  };
+
+  useEffect(() => {
     if (address && chain && !chain.unsupported) {
       fetchTokenBalances();
     }
   }, [address, chain]);
+
+  useEffect(() => {
+    if (transferId) {
+      poll(
+        async () => {
+          let hash: string | undefined;
+
+          try {
+            hash = await getTargetTxHash(transferId);
+            setPendingTargetTx(false);
+            setTargetTxHash(hash);
+          } catch (e: any) {}
+        },
+        5000,
+        () => {
+          console.log(!!targetTxHash);
+          return !!targetTxHash; // FIXME: stop polling
+        }
+      );
+    }
+  }, [transferId]);
+
+  useEffect(() => {
+    if (targetTxHash) {
+      fetchTokenBalances();
+    }
+  }, [targetTxHash]);
 
   return (
     <Layout>
@@ -141,11 +307,9 @@ const Home: NextPage = () => {
                         aTEST
                       </Box>
                       <Box flex={1} textAlign="right">
-                        {goerliBalance ? (
-                          utils.formatEther(goerliBalance)
-                        ) : (
-                          <Skeleton />
-                        )}
+                        {goerliBalance
+                          ? utils.formatEther(goerliBalance)
+                          : address && <Skeleton>123</Skeleton>}
                       </Box>
                     </Stack>
                     <Box pt={4} px={4} mb={-4}>
@@ -178,11 +342,9 @@ const Home: NextPage = () => {
                         aTEST
                       </Box>
                       <Box flex={1} textAlign="right">
-                        {mumbaiBalance ? (
-                          utils.formatEther(mumbaiBalance)
-                        ) : (
-                          <Skeleton />
-                        )}
+                        {mumbaiBalance
+                          ? utils.formatEther(mumbaiBalance)
+                          : address && <Skeleton>123</Skeleton>}
                       </Box>
                     </Stack>
                     <Box pt={4} px={4} mb={-4}>
@@ -204,6 +366,27 @@ const Home: NextPage = () => {
                   ⚡Bridge position ➡️ Aave Polygon 🤑
                 </Button>
               </Center>
+              {pendingTargetTx && (
+                <Box mt={4}>
+                  <Progress isIndeterminate />
+                  <Center fontWeight={"bold"}>
+                    ⌛ Waiting for tokens to reach Polygon Mumbai...
+                  </Center>
+                </Box>
+              )}
+              {targetTxHash && (
+                <Center mt={4} flexDirection={"column"} fontWeight={"bold"}>
+                  <Box>✅ Position bridged!</Box>
+                  <Link
+                    mt={2}
+                    color={"cyan.300"}
+                    href={`https://mumbai.polygonscan.com/tx/${targetTxHash}`}
+                    isExternal
+                  >
+                    View on Polygonscan ↗️
+                  </Link>
+                </Center>
+              )}
             </Box>
           </Box>
         </Box>
