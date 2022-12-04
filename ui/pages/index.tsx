@@ -104,6 +104,7 @@ const Home: NextPage = () => {
       await data.wait();
       setPendingTargetTx(true);
       storeTransferId(data.hash);
+      fetchTokenBalances();
     },
   });
   const { isLoading: isTransactionPending } = useWaitForTransaction({
