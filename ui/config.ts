@@ -1,6 +1,7 @@
 import { chain } from "wagmi";
 
 export const aTEST_Goerli = "0x7f62Ac86A528685C5e8BF6019E7DFe6E1587E03d";
+export const aTEST_Mumbai = "0x2D8EE3829d10d30247beDF9A2a41219Aa4b664a6";
 export const FlashBagGoerli = "0x854Da00d8F699Ead0FB1dbb3a12fA76504Ebb2EB";
 
 export const supportedChains = [chain.goerli];
