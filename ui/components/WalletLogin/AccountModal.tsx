@@ -25,7 +25,7 @@ type Props = {
 const AccountModal = ({ isOpen, onClose }: Props) => {
   const { chain } = useNetwork();
   const { address, connector } = useAccount();
-  const { data: ensName } = useEnsName({ address });
+  const { data: ensName } = useEnsName({ address, chainId: chain?.id });
   const { disconnect } = useDisconnect();
 
   function handleDisconnectAccount() {
@@ -97,7 +97,8 @@ const AccountModal = ({ isOpen, onClose }: Props) => {
                 ml="2"
                 lineHeight="1.1"
               >
-                {ensName ?? (address && slicedAddress(address))}
+                {/* FIXME: remove */}
+                {"ethindiademo.eth" ?? (address && slicedAddress(address))}
               </Text>
             </Flex>
             <Flex alignContent="center" m={3}>

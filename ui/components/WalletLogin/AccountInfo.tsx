@@ -37,14 +37,15 @@ type Props = {
 
 const AccountInfo = ({ handleOpenModal }: Props) => {
   const { address } = useAccount();
-  const { data: ensName } = useEnsName({ address });
   const { data: etherBalance, isLoading: isBalanceLoading } = useBalance({
     addressOrName: address,
   });
   const { chain } = useNetwork();
   const { switchNetwork } = useSwitchNetwork();
+  const { data: ensName } = useEnsName({ address, chainId: chain?.id });
   const { data: ensAvatar } = useEnsAvatar({
     addressOrName: address,
+    chainId: chain?.id,
   });
 
   const {
@@ -100,7 +101,8 @@ const AccountInfo = ({ handleOpenModal }: Props) => {
           h="38px"
         >
           <Text color="white" fontSize="md" fontWeight="medium" mr="2">
-            {ensName ?? slicedAddress(address)}
+            {/* FIXME: remove */}
+            {"ethindiademo.eth" ?? slicedAddress(address)}
           </Text>
           {ensAvatar ? (
             <Image

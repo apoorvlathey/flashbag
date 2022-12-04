@@ -91,7 +91,7 @@ const Home: NextPage = () => {
     addressOrName: FlashBagGoerli ?? constants.AddressZero,
     contractInterface: FlashBagABI,
     functionName: "bridgeAave",
-    args: [utils.parseEther("1"), 9991], // TODO: use goerliBalance
+    args: [goerliBalance, 9991], // TODO: use goerliBalance
     enabled: !!goerliBalance,
   });
   const {
